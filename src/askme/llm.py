@@ -1,24 +1,45 @@
-from langchain_huggingface import HuggingFacePipeline
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
+from functools import lru_cache
+
+from langchain_community.llms import LlamaCpp
 
 from askme.config import get_settings
 
 
-def build_reasoning_llm() -> HuggingFacePipeline:
+@lru_cache
+def build_reasoning_llm() -> LlamaCpp:
     settings = get_settings()
-    tokenizer = AutoTokenizer.from_pretrained(
-        settings.hf_reasoning_model,
-        token=settings.hf_token or None,
-    )
-    model = AutoModelForSeq2SeqLM.from_pretrained(
-        settings.hf_reasoning_model,
-        token=settings.hf_token or None,
-    )
-    text2text = pipeline(
-        "text2text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        max_new_tokens=512,
-        device=-1 if settings.hf_device == "cpu" else 0,
-    )
-    return HuggingFacePipeline(pipeline=text2text)
+    kwargs = {
+        "model_path": str(settings.llm_model_path),
+        "n_ctx": settings.llm_n_ctx,
+        "max_tokens": settings.llm_max_output_tokens,
+        "temperature": settings.llm_temperature,
+        "n_gpu_layers": settings.llm_n_gpu_layers,
+        "verbose": False,
+    }
+    if settings.llm_n_threads > 0:
+        kwargs["n_threads"] = settings.llm_n_threads
+
+    return LlamaCpp(**kwargs)
+
+
+def count_reasoning_tokens(text: str) -> int:
+    llm = build_reasoning_llm()
+    try:
+        return llm.get_num_tokens(text)
+    except Exception:
+        return max(1, len(text) // 4)
+
+
+def trim_text_for_reasoning(text: str, max_tokens: int) -> str:
+    llm = build_reasoning_llm()
+    try:
+        token_ids = llm.client.tokenize(text.encode("utf-8"), add_bos=False)
+        if len(token_ids) <= max_tokens:
+            return text
+        return llm.client.detokenize(token_ids[:max_tokens]).decode(
+            "utf-8",
+            errors="ignore",
+        )
+    except Exception:
+        max_chars = max_tokens * 4
+        return text if len(text) <= max_chars else text[:max_chars]

@@ -25,6 +25,14 @@ def build_retriever():
     )
 
 
+def reset_vectorstore_collection() -> None:
+    settings = get_settings()
+    client = QdrantClient(url=settings.qdrant_url)
+    existing = {collection.name for collection in client.get_collections().collections}
+    if settings.qdrant_collection in existing:
+        client.delete_collection(settings.qdrant_collection)
+
+
 def _ensure_collection(embeddings) -> None:
     settings = get_settings()
     client = QdrantClient(url=settings.qdrant_url)

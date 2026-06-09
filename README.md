@@ -2,6 +2,8 @@
 
 Du an hoi dap bat ky thac mac nao cua nguoi dung dua tren du lieu trong `data/`.
 Nguon du lieu ban dau ho tro `.docx` va `.json`, sau do index vao Qdrant local de truy van bang LangChain, dieu phoi reasoning bang LangGraph, va co san LangSmith tracing.
+Ket qua tra loi duoc parse bang Pydantic schema de co cau truc gom `answer`, `has_enough_context`, `confidence`, `citations`, va `missing_info`.
+Model sinh cau tra loi mac dinh la GGUF local qua `llama-cpp-python`: `E:\LLMs\Vi-Qwen2-7B-RAG.Q2_K.gguf`.
 
 ## Cau truc
 
@@ -45,6 +47,21 @@ docker compose up -d qdrant
 ```
 
 Neu khong dung Docker, co the chay Qdrant rieng va cap nhat `QDRANT_URL` trong `.env`.
+
+## Cau hinh GGUF
+
+Text generation duoc cau hinh trong `.env`:
+
+```env
+LLM_BACKEND=llama_cpp
+LLM_MODEL_PATH=E:\LLMs\Vi-Qwen2-7B-RAG.Q2_K.gguf
+LLM_N_CTX=4096
+LLM_MAX_INPUT_TOKENS=3072
+LLM_CONTEXT_TOKEN_BUDGET=1800
+LLM_MAX_OUTPUT_TOKENS=512
+```
+
+Neu `pip install -r requirements.txt` gap loi build `llama-cpp-python` tren Windows, cai ban wheel phu hop voi CPU/GPU cua may truoc roi chay lai requirements.
 
 ## Nap du lieu
 

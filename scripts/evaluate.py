@@ -14,7 +14,7 @@ def main() -> None:
     settings = get_settings()
     examples = _load_eval_examples(EVAL_FILE)
     if not examples:
-        print(f"Chua co examples trong {EVAL_FILE}. Hay them cau hoi eval truoc.")
+        print(f"No eval examples found in {EVAL_FILE}. Add evaluation questions first.")
         return
 
     client = Client(
@@ -32,12 +32,12 @@ def main() -> None:
         description="RAG evaluation for AskMe over local Qdrant data.",
         max_concurrency=1,
         metadata={
-            "models": [settings.hf_reasoning_model],
+            "models": [str(settings.llm_model_path)],
             "embedding_model": settings.hf_embedding_model,
             "vectorstore": "qdrant-local",
         },
     )
-    print("Da gui eval len LangSmith.")
+    print("Evaluation submitted to LangSmith.")
     print(f"Dataset: {dataset.name}")
     print(f"Experiment: {results}")
 
@@ -46,7 +46,8 @@ def main() -> None:
 def answer_question(inputs: dict[str, Any]) -> dict[str, str]:
     graph = _get_graph()
     result = graph.invoke({"question": inputs["question"]})
-    return {"answer": result.get("answer", "")}
+    structured_answer = result.get("answer", {})
+    return {"answer": structured_answer.get("answer", "")}
 
 
 def answer_contains_required_terms(
