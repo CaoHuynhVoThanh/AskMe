@@ -1,0 +1,12 @@
+[
+  {
+    "question": "Tom tat noi dung chinh cua tai lieu?",
+    "answer": "Cau tra loi nen phu hop voi noi dung tai lieu cua ban.",
+    "must_contain": ["noi dung"]
+  },
+  {
+    "question": "Tai lieu co nhac den quy trinh nao?",
+    "answer": "Dien dap an tham chieu cua ban tai day.",
+    "must_contain": ["quy trinh"]
+  }
+]

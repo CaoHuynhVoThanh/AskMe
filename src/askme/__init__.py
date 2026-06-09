@@ -1,0 +1,1 @@
+"""AskMe RAG application."""

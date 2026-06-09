@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: askme-rag
+Version: 0.1.0
+Summary: RAG question answering app with LangChain, LangGraph, LangSmith, Hugging Face, and Qdrant.
+Requires-Python: >=3.10
