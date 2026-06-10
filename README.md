@@ -231,8 +231,6 @@ Evaluator mặc định kiểm tra câu trả lời có chứa các từ/cụm t
 
 ## Lưu Ý Vận Hành
 
-- `.env` đã được ignore, chỉ dùng để lưu secrets local.
-- Nếu `.env` đã từng được Git track, chạy `git rm --cached .env` một lần.
 - GGUF context lớn không miễn phí: `n_ctx=32768` có thể làm thiếu RAM ngay cả với model quant nhỏ.
 - CrossEncoder reranker cũng tốn RAM vì dùng PyTorch/Transformers.
 - Nếu máy yếu, dùng `llm_n_ctx=4096`, `llm_n_batch=128`, và cân nhắc `enable_reranker=False`.
