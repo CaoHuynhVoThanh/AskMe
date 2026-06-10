@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -16,3 +18,11 @@ class AnswerResponse(BaseModel):
         default_factory=list,
         description="Information that is missing when context is insufficient.",
     )
+
+
+class InputClassification(BaseModel):
+    route: Literal["normal", "rag"] = Field(
+        description="Use normal for greetings/chit-chat/simple assistant questions; use rag when document retrieval is needed."
+    )
+    reason: str = Field(description="Short reason for the route decision.")
+    confidence: float = Field(description="Confidence score from 0 to 1.")

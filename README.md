@@ -32,6 +32,21 @@ Model sinh cau tra loi mac dinh la GGUF local qua `llama-cpp-python`: `E:\LLMs\V
 +-- pyproject.toml
 ```
 
+## Luồng xử lý
+
+```mermaid
+graph TD
+    START([START]) --> classify_input[classify_input]
+
+    classify_input -->|rag| retrieve[retrieve]
+    classify_input -->|normal| prepare_context[prepare_context]
+
+    retrieve --> rerank[rerank]
+    rerank --> prepare_context
+    prepare_context --> generate[generate]
+    generate --> END([END])
+```
+
 ## Cai dat
 
 ```powershell
@@ -55,13 +70,31 @@ Text generation duoc cau hinh trong `.env`:
 ```env
 LLM_BACKEND=llama_cpp
 LLM_MODEL_PATH=E:\LLMs\Vi-Qwen2-7B-RAG.Q2_K.gguf
-LLM_N_CTX=4096
-LLM_MAX_INPUT_TOKENS=3072
-LLM_CONTEXT_TOKEN_BUDGET=1800
+LLM_N_CTX=32768
+LLM_CONTEXT_FALLBACKS=32768,24576,16384,8192,4096
+LLM_MAX_INPUT_TOKENS=28672
+LLM_CONTEXT_TOKEN_BUDGET=24000
 LLM_MAX_OUTPUT_TOKENS=512
+LLM_N_BATCH=512
+DEBUG_LLM_CONFIG=true
 ```
 
 Neu `pip install -r requirements.txt` gap loi build `llama-cpp-python` tren Windows, cai ban wheel phu hop voi CPU/GPU cua may truoc roi chay lai requirements.
+
+Khi `DEBUG_LLM_CONFIG=true`, luc model khoi tao se in cac lan thu `llama_cpp_config_attempt`. He thong thu `LLM_N_CTX=32768` truoc; neu may khong du RAM/KV cache de tao context thi se fallback theo `LLM_CONTEXT_FALLBACKS`. Neu muon bat buoc dung full 32768, chi de `LLM_CONTEXT_FALLBACKS=32768` va dam bao may du bo nho.
+
+## Retrieval va rerank
+
+Mac dinh Qdrant retriever lay 20 ung vien co kha nang lien quan, sau do CrossEncoder reranker chon top 5 doan lien quan nhat de dua vao prompt:
+
+```env
+RETRIEVER_TOP_K=20
+RERANKER_TOP_K=5
+ENABLE_RERANKER=true
+DEBUG_RERANKER=true
+```
+
+Neu RAM khong du khi load CrossEncoder reranker, he thong se fallback ve thu tu retriever va lay 5 tai lieu dau tien. Co the tat reranker bang `ENABLE_RERANKER=false`.
 
 ## Nap du lieu
 
