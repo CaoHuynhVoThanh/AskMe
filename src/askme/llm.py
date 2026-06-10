@@ -33,7 +33,7 @@ def build_reasoning_llm() -> LlamaCpp:
 
     raise RuntimeError(
         "Could not load the GGUF model with any configured context size. "
-        "Lower LLM_CONTEXT_FALLBACKS/LLM_N_CTX or use a llama-cpp-python build with more memory support."
+        "Lower llm_context_fallbacks/llm_n_ctx in src/askme/config.py or use a llama-cpp-python build with more memory support."
     ) from last_error
 
 

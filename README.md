@@ -27,7 +27,7 @@ Model sinh cau tra loi mac dinh la GGUF local qua `llama-cpp-python`: `E:\LLMs\V
 |       +-- vectorstore.py
 |       +-- prompts.py
 +-- docker-compose.yml     # Qdrant local
-+-- .env
++-- .env.example           # Mau secrets; copy thanh .env tren may local
 +-- requirements.txt
 +-- pyproject.toml
 ```
@@ -61,40 +61,45 @@ pip install -r requirements.txt
 docker compose up -d qdrant
 ```
 
-Neu khong dung Docker, co the chay Qdrant rieng va cap nhat `QDRANT_URL` trong `.env`.
+Neu khong dung Docker, co the chay Qdrant rieng va cap nhat `qdrant_url` trong `src/askme/config.py`.
 
-## Cau hinh GGUF
+## Cau hinh
 
-Text generation duoc cau hinh trong `.env`:
+Tat ca runtime settings nam trong `src/askme/config.py`. File `.env` chi dung cho secrets va da duoc ignore boi Git.
 
-```env
-LLM_BACKEND=llama_cpp
-LLM_MODEL_PATH=E:\LLMs\Vi-Qwen2-7B-RAG.Q2_K.gguf
-LLM_N_CTX=32768
-LLM_CONTEXT_FALLBACKS=32768,24576,16384,8192,4096
-LLM_MAX_INPUT_TOKENS=28672
-LLM_CONTEXT_TOKEN_BUDGET=24000
-LLM_MAX_OUTPUT_TOKENS=512
-LLM_N_BATCH=512
-DEBUG_LLM_CONFIG=true
+Copy mau secrets:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+GGUF text generation hien dung low-memory profile trong `config.py`:
+
+```python
+llm_model_path = Path("E:/LLMs/Vi-Qwen2-7B-RAG.Q2_K.gguf")
+llm_n_ctx = 4096
+llm_context_fallbacks = "4096"
+llm_max_input_tokens = 3072
+llm_context_token_budget = 2200
+llm_n_batch = 128
 ```
 
 Neu `pip install -r requirements.txt` gap loi build `llama-cpp-python` tren Windows, cai ban wheel phu hop voi CPU/GPU cua may truoc roi chay lai requirements.
 
-Khi `DEBUG_LLM_CONFIG=true`, luc model khoi tao se in cac lan thu `llama_cpp_config_attempt`. He thong thu `LLM_N_CTX=32768` truoc; neu may khong du RAM/KV cache de tao context thi se fallback theo `LLM_CONTEXT_FALLBACKS`. Neu muon bat buoc dung full 32768, chi de `LLM_CONTEXT_FALLBACKS=32768` va dam bao may du bo nho.
+Khi `debug_llm_config=True`, luc model khoi tao se in cac lan thu `llama_cpp_config_attempt`. Neu muon dung context lon, uncomment high-context profile trong `src/askme/config.py` va dam bao may du RAM/KV cache.
 
 ## Retrieval va rerank
 
 Mac dinh Qdrant retriever lay 20 ung vien co kha nang lien quan, sau do CrossEncoder reranker chon top 5 doan lien quan nhat de dua vao prompt:
 
-```env
-RETRIEVER_TOP_K=20
-RERANKER_TOP_K=5
-ENABLE_RERANKER=true
-DEBUG_RERANKER=true
+```python
+retriever_top_k = 20
+reranker_top_k = 5
+enable_reranker = True
+debug_reranker = True
 ```
 
-Neu RAM khong du khi load CrossEncoder reranker, he thong se fallback ve thu tu retriever va lay 5 tai lieu dau tien. Co the tat reranker bang `ENABLE_RERANKER=false`.
+Neu RAM khong du khi load CrossEncoder reranker, he thong se fallback ve thu tu retriever va lay 5 tai lieu dau tien. Co the tat reranker bang `enable_reranker = False` trong `src/askme/config.py`.
 
 ## Nap du lieu
 
@@ -115,14 +120,14 @@ python scripts/ingest.py
 python scripts/chat.py
 ```
 
-Bat LangSmith tracing bang cach dien `LANGSMITH_API_KEY` va dat `LANGSMITH_TRACING=true` trong `.env`.
+Bat LangSmith tracing bang cach dien `LANGSMITH_API_KEY` trong `.env` va dat `langsmith_tracing = True` trong `src/askme/config.py`.
 
 ## LangSmith eval
 
 LangSmith UI chay tren web tai `https://smith.langchain.com`. Project nay chay eval bang SDK local, sau do ket qua experiment se hien trong UI.
 
 1. Dien `LANGSMITH_API_KEY` trong `.env`.
-2. Dat `LANGSMITH_TRACING=true`.
+2. Dat `langsmith_tracing = True` trong `src/askme/config.py`.
 3. Sua `data/evals/qa_examples.json` theo bo cau hoi cua ban.
 4. Dam bao Qdrant da co du lieu bang `python scripts/ingest.py`.
 5. Chay:
