@@ -58,3 +58,40 @@ def rerank_documents(
             },
         )
     return reranked
+
+
+def rerank_documents_with_scores(
+    documents: list[Document], question: str, top_k: int = 1
+) -> list[tuple[float | None, Document]]:
+    settings = get_settings()
+    if len(documents) <= top_k:
+        return [(None, doc) for doc in documents]
+
+    if not settings.enable_reranker:
+        if settings.debug_reranker:
+            print("[debug] reranker_disabled: using retriever order")
+        return [(None, doc) for doc in documents[:top_k]]
+
+    try:
+        reranker = build_reranker()
+        scores = reranker.predict(
+            [[question, doc.page_content] for doc in documents]
+        )
+    except Exception as exc:
+        build_reranker.cache_clear()
+        if settings.debug_reranker:
+            print(
+                "[debug] reranker_failed:",
+                {
+                    "error": str(exc),
+                    "fallback": f"using first {top_k} retriever documents",
+                },
+            )
+        return [(None, doc) for doc in documents[:top_k]]
+
+    ranked = sorted(
+        ((float(score), doc) for score, doc in zip(scores, documents)),
+        key=lambda item: item[0],
+        reverse=True,
+    )
+    return ranked[:top_k]

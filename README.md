@@ -33,6 +33,7 @@ Output trả lời có dạng:
 +-- scripts/
 |   +-- ingest.py          # Nạp dữ liệu vào Qdrant
 |   +-- chat.py            # Chat CLI
+|   +-- debug_retrieval.py # Chạy riêng retrieve/rerank để debug tài liệu được chọn
 |   +-- evaluate.py        # Chạy eval và gửi experiment lên LangSmith
 +-- src/
 |   +-- askme/
