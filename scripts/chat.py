@@ -1,6 +1,7 @@
 from rich.console import Console
 from rich.table import Table
 
+from askme.config import configure_langsmith_environment
 from askme.graph import build_qa_graph
 
 
@@ -8,6 +9,7 @@ console = Console()
 
 
 def main() -> None:
+    configure_langsmith_environment()
     graph = build_qa_graph()
     console.print("[bold green]AskMe is ready. Type 'exit' to quit.[/bold green]")
 
@@ -16,7 +18,14 @@ def main() -> None:
         if question.lower() in {"exit", "quit", "q"}:
             break
 
-        result = graph.invoke({"question": question})
+        result = graph.invoke(
+            {"question": question},
+            config={
+                "run_name": "askme_chat",
+                "tags": ["chat", "rag"],
+                "metadata": {"entrypoint": "scripts/chat.py"},
+            },
+        )
         answer = result["answer"]
         console.print(f"[bold yellow]Answer:[/bold yellow] {answer['answer']}")
         console.print(

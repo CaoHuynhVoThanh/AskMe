@@ -6,7 +6,7 @@ Hệ thống đang dùng:
 
 - Qdrant local làm vector database.
 - Hugging Face/Sentence Transformers cho embedding và reranking.
-- GGUF local qua `llama-cpp-python` để sinh câu trả lời.
+- Gemini để phân loại đầu vào và sinh câu trả lời.
 - Pydantic để ép output có cấu trúc.
 - LangSmith để tracing/evaluation khi cần.
 
@@ -41,7 +41,7 @@ Output trả lời có dạng:
 |       +-- document_loaders.py
 |       +-- embeddings.py
 |       +-- graph.py       # LangGraph pipeline
-|       +-- llm.py         # GGUF/LlamaCpp loader
+|       +-- llm.py         # Gemini client
 |       +-- prompts.py
 |       +-- reranker.py
 |       +-- schemas.py
@@ -69,11 +69,11 @@ graph TD
 
 Ý nghĩa các node:
 
-- `classify_input`: dùng Qwen GGUF để phân loại câu hỏi là `normal` hay `rag`.
+- `classify_input`: dùng Gemini để phân loại câu hỏi là `normal` hay `rag`.
 - `retrieve`: lấy 20 tài liệu/chunk có khả năng liên quan từ Qdrant.
 - `rerank`: dùng CrossEncoder để chọn top 5 tài liệu liên quan nhất.
 - `prepare_context`: ghép context và cắt theo token budget.
-- `generate`: gọi GGUF local để sinh JSON answer theo schema Pydantic.
+- `generate`: gọi Gemini để sinh JSON answer theo schema Pydantic.
 
 ## Cài Đặt
 
@@ -83,9 +83,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Nếu cài `llama-cpp-python` trên Windows bị lỗi build, hãy cài wheel phù hợp CPU/GPU trước rồi chạy lại `pip install -r requirements.txt`.
-
-## Secrets Và Cấu Hình
+## Secrets, LangSmith Và Cấu Hình
 
 Toàn bộ cấu hình runtime nằm trong:
 
@@ -93,20 +91,26 @@ Toàn bộ cấu hình runtime nằm trong:
 src/askme/config.py
 ```
 
-File `.env` chỉ dùng cho secrets và đã được ignore bởi Git. Tạo `.env` từ file mẫu:
+File `.env` dùng cho secrets và cấu hình workspace LangSmith local; file này đã được ignore bởi Git. Tạo `.env` từ file mẫu:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Sau đó điền nếu cần:
+Sau đó điền:
 
 ```env
+LANGSMITH_TRACING=false
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_PROJECT=askme-rag
 LANGSMITH_API_KEY=
+GEMINI_API_KEY=
 HF_TOKEN=
 ```
 
-Lưu ý: không đặt các cấu hình như `LLM_N_CTX`, `QDRANT_URL`, `RETRIEVER_TOP_K` trong `.env` nữa. Muốn đổi runtime settings thì sửa trực tiếp trong `src/askme/config.py`.
+`GEMINI_API_KEY` là key dùng cho Gemini. Code cũng hỗ trợ các tên biến `GOOGLE_API_KEY` và `GOOGLE_GENERATIVE_AI_API_KEY` nếu bạn đã dùng tên đó.
+
+Lưu ý: không đặt các cấu hình runtime như `QDRANT_URL`, `RETRIEVER_TOP_K`, `RERANKER_TOP_K` trong `.env` nữa. Muốn đổi runtime settings thì sửa trực tiếp trong `src/askme/config.py`.
 
 ## Chạy Qdrant Local
 
@@ -116,40 +120,25 @@ docker compose up -d qdrant
 
 Nếu không dùng Docker, hãy chạy Qdrant riêng và sửa `qdrant_url` trong `src/askme/config.py`.
 
-## Cấu Hình GGUF
+## Cấu Hình Gemini
 
-Model mặc định:
-
-```python
-llm_model_path = Path("E:/LLMs/Vi-Qwen2-7B-RAG.Q2_K.gguf")
-```
-
-Profile mặc định đang ưu tiên chạy được trên máy ít RAM:
+Cấu hình mặc định trong `src/askme/config.py`:
 
 ```python
-llm_n_ctx = 4096
-llm_context_fallbacks = "4096"
-llm_max_input_tokens = 3072
-llm_context_token_budget = 2200
-llm_n_batch = 128
+llm_backend = "gemini"
+gemini_model = "gemini-2.5-flash"
+gemini_max_input_tokens = 28672
+gemini_context_token_budget = 24000
+gemini_max_output_tokens = 1024
+gemini_temperature = 0.1
 ```
 
-Nếu máy đủ RAM/VRAM, có thể chuyển sang profile context lớn đã được comment sẵn trong `config.py`:
+Lưu ý:
 
-```python
-# llm_n_ctx: int = 32768
-# llm_context_fallbacks: str = "32768,24576,16384,8192,4096"
-# llm_max_input_tokens: int = 28672
-# llm_context_token_budget: int = 24000
-# llm_n_batch: int = 512
-```
-
-Lưu ý quan trọng:
-
-- `llm_n_ctx` càng lớn thì càng tốn RAM/VRAM do KV cache.
-- Nếu gặp lỗi `Failed to create llama_context`, hãy giảm `llm_n_ctx`.
-- Nếu `debug_llm_config=True`, khi khởi động model sẽ in các lần thử context bằng `llama_cpp_config_attempt`.
-- Khi dùng context lớn, nên cân nhắc tắt reranker để giảm áp lực RAM.
+- Nếu muốn đổi model Gemini, sửa `gemini_model`.
+- Nếu prompt/context quá dài, giảm `gemini_context_token_budget`.
+- Nếu output JSON hay bị cụt, tăng `gemini_max_output_tokens`.
+- Nếu muốn câu trả lời ổn định hơn, giữ temperature thấp như `0.1`.
 
 ## Retrieval Và Rerank
 
@@ -191,7 +180,7 @@ python scripts/ingest.py --reset
 
 Lưu ý:
 
-- Sau khi đổi `CHUNK_SIZE`/`chunk_size` hoặc dữ liệu nguồn, nên chạy lại `ingest.py --reset`.
+- Sau khi đổi `chunk_size`, `chunk_overlap` hoặc dữ liệu nguồn, nên chạy lại `ingest.py --reset`.
 - Nếu Qdrant chưa chạy, ingest và chat sẽ lỗi kết nối.
 
 ## Chat
@@ -208,6 +197,32 @@ Khi `debug_input_classification=True`, mỗi câu hỏi sẽ in JSON phân loạ
 
 Khi `debug_reranker=True`, hệ thống cũng in trạng thái reranker đã chạy, bị tắt, hoặc fallback vì lỗi RAM.
 
+## Debug Retriever Và Reranker
+
+Script này chỉ chạy hai bước chọn tài liệu:
+
+```text
+retrieve -> rerank
+```
+
+Nó không gọi Gemini.
+
+```powershell
+python scripts/debug_retrieval.py "Câu hỏi cần kiểm tra"
+```
+
+Hoặc chạy rồi nhập câu hỏi:
+
+```powershell
+python scripts/debug_retrieval.py
+```
+
+Tăng độ dài excerpt:
+
+```powershell
+python scripts/debug_retrieval.py "Câu hỏi" --max-chars 500
+```
+
 ## LangSmith Tracing Và Eval
 
 LangSmith UI chạy trên web tại:
@@ -219,10 +234,12 @@ https://smith.langchain.com
 Để bật tracing/eval:
 
 1. Điền `LANGSMITH_API_KEY` trong `.env`.
-2. Đặt `langsmith_tracing = True` trong `src/askme/config.py`.
-3. Sửa `data/evals/qa_examples.json` theo bộ câu hỏi của bạn.
-4. Đảm bảo Qdrant đã có dữ liệu bằng `python scripts/ingest.py`.
-5. Chạy:
+2. Đặt `LANGSMITH_TRACING=true` trong `.env`.
+3. Nếu dùng region khác, sửa `LANGSMITH_ENDPOINT` trong `.env`.
+4. Sửa `LANGSMITH_PROJECT` theo tên project muốn xem trên LangSmith.
+5. Sửa `data/evals/qa_examples.json` theo bộ câu hỏi của bạn.
+6. Đảm bảo Qdrant đã có dữ liệu bằng `python scripts/ingest.py`.
+7. Chạy:
 
 ```powershell
 python scripts/evaluate.py
@@ -230,10 +247,13 @@ python scripts/evaluate.py
 
 Evaluator mặc định kiểm tra câu trả lời có chứa các từ/cụm từ trong `must_contain`.
 
+Khi chạy `python scripts/chat.py` với `LANGSMITH_TRACING=true`, mỗi lượt chat sẽ được gửi lên LangSmith với run name `askme_chat`, tags `chat` và `rag`.
+
 ## Lưu Ý Vận Hành
 
-- GGUF context lớn không miễn phí: `n_ctx=32768` có thể làm thiếu RAM ngay cả với model quant nhỏ.
-- CrossEncoder reranker cũng tốn RAM vì dùng PyTorch/Transformers.
-- Nếu máy yếu, dùng `llm_n_ctx=4096`, `llm_n_batch=128`, và cân nhắc `enable_reranker=False`.
-- Nếu model trả lời lặp prompt, kiểm tra `prompts.py` và stop tokens trong `LLM_STOP_TOKENS`.
+- `.env` đã được ignore, chỉ dùng để lưu secrets và cấu hình LangSmith local.
+- Nếu `.env` đã từng được Git track, chạy `git rm --cached .env` một lần.
+- Gemini cần API key hợp lệ trong `.env`.
+- CrossEncoder reranker tốn RAM vì dùng PyTorch/Transformers.
+- Nếu máy yếu, cân nhắc `enable_reranker=False`.
 - Nếu output không parse được JSON, hệ thống sẽ fallback về raw answer với `has_enough_context=False`.

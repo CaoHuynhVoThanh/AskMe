@@ -7,6 +7,8 @@ src/askme/embeddings.py
 src/askme/graph.py
 src/askme/llm.py
 src/askme/prompts.py
+src/askme/reranker.py
+src/askme/schemas.py
 src/askme/vectorstore.py
 src/askme_rag.egg-info/PKG-INFO
 src/askme_rag.egg-info/SOURCES.txt

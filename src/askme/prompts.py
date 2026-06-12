@@ -9,9 +9,6 @@ Rules:
 - Keep confidence between 0 and 1.
 """
 
-LLM_STOP_TOKENS = ["<|im_end|>", "<|endoftext|>", "<|im_start|>user"]
-
-
 def build_input_classification_prompt(question: str) -> str:
     system = (
         "You are the input router for a Vietnamese RAG question-answering system. "
@@ -92,7 +89,7 @@ def build_input_classification_prompt(question: str) -> str:
         f"User message to classify:\n{question}"
     )
 
-    return _chatml(system=system, user=user)
+    return f"{system}\n\n{user}"
 
 
 def build_qa_prompt(question: str, context: str) -> str:
@@ -120,16 +117,4 @@ def build_qa_prompt(question: str, context: str) -> str:
         "- If context is sufficient, set has_enough_context=true and include citations when useful.\n"
         "- Keep the answer concise and helpful."
     )
-    return _chatml(system=system, user=user)
-
-
-def _chatml(system: str, user: str) -> str:
-    return (
-        "<|im_start|>system\n"
-        f"{system}\n"
-        "<|im_end|>\n"
-        "<|im_start|>user\n"
-        f"{user}\n"
-        "<|im_end|>\n"
-        "<|im_start|>assistant\n"
-    )
+    return f"{system}\n\n{user}"

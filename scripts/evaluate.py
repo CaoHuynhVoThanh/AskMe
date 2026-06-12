@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from askme.config import BASE_DIR, get_settings
+from askme.config import BASE_DIR, configure_langsmith_environment, get_settings
 from askme.graph import build_qa_graph
 from langsmith import Client, traceable
 
@@ -11,6 +11,7 @@ EVAL_FILE = BASE_DIR / "data" / "evals" / "qa_examples.json"
 
 
 def main() -> None:
+    configure_langsmith_environment()
     settings = get_settings()
     examples = _load_eval_examples(EVAL_FILE)
     if not examples:
@@ -32,7 +33,7 @@ def main() -> None:
         description="RAG evaluation for AskMe over local Qdrant data.",
         max_concurrency=1,
         metadata={
-            "models": [str(settings.llm_model_path)],
+            "models": [settings.gemini_model],
             "embedding_model": settings.hf_embedding_model,
             "vectorstore": "qdrant-local",
         },

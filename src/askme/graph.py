@@ -7,8 +7,8 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langgraph.graph import END, StateGraph
 
 from askme.config import get_settings
-from askme.llm import build_reasoning_llm, trim_text_for_reasoning
-from askme.prompts import LLM_STOP_TOKENS, build_input_classification_prompt, build_qa_prompt
+from askme.llm import build_reasoning_llm, invoke_reasoning_text, trim_text_for_reasoning
+from askme.prompts import build_input_classification_prompt, build_qa_prompt
 from askme.reranker import rerank_documents
 from askme.schemas import AnswerResponse, InputClassification
 from askme.vectorstore import build_retriever
@@ -32,8 +32,8 @@ def build_qa_graph():
     def classify_input(state: QAState) -> QAState:
         settings = get_settings()
         prompt = build_input_classification_prompt(state["question"])
-        prompt_text = trim_text_for_reasoning(prompt, settings.llm_max_input_tokens)
-        raw_classification = str(llm.invoke(prompt_text, stop=LLM_STOP_TOKENS))
+        prompt_text = trim_text_for_reasoning(prompt, settings.gemini_max_input_tokens)
+        raw_classification = invoke_reasoning_text(prompt_text)
         classification = _parse_input_classification(
             raw_classification=raw_classification,
             question=state["question"],
@@ -64,7 +64,7 @@ def build_qa_graph():
             _format_document(index, doc)
             for index, doc in enumerate(state.get("documents", []))
         )
-        context = trim_text_for_reasoning(context, settings.llm_context_token_budget)
+        context = trim_text_for_reasoning(context, settings.gemini_context_token_budget)
         return {"context": context}
 
     def generate(state: QAState) -> QAState:
@@ -83,8 +83,8 @@ def build_qa_graph():
             question=state["question"],
             context=state.get("context", ""),
         )
-        prompt_text = trim_text_for_reasoning(prompt, settings.llm_max_input_tokens)
-        raw_answer = str(llm.invoke(prompt_text, stop=LLM_STOP_TOKENS))
+        prompt_text = trim_text_for_reasoning(prompt, settings.gemini_max_input_tokens)
+        raw_answer = invoke_reasoning_text(prompt_text)
         answer = _parse_structured_answer(parser, raw_answer)
         return {"answer": answer.model_dump(), "raw_answer": raw_answer}
 
