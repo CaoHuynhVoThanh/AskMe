@@ -164,6 +164,7 @@ enable_reranker = False
 Đặt dữ liệu vào:
 
 - `data/docx/` cho file `.docx`
+- `data/pdf/` cho file `.pdf`
 - `data/json/` cho file `.json`
 
 Nạp dữ liệu:
@@ -251,8 +252,6 @@ Khi chạy `python scripts/chat.py` với `LANGSMITH_TRACING=true`, mỗi lượ
 
 ## Lưu Ý Vận Hành
 
-- `.env` đã được ignore, chỉ dùng để lưu secrets và cấu hình LangSmith local.
-- Nếu `.env` đã từng được Git track, chạy `git rm --cached .env` một lần.
 - Gemini cần API key hợp lệ trong `.env`.
 - CrossEncoder reranker tốn RAM vì dùng PyTorch/Transformers.
 - Nếu máy yếu, cân nhắc `enable_reranker=False`.

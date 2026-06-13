@@ -18,7 +18,7 @@ def main() -> None:
 
     documents = load_source_documents()
     if not documents:
-        print("No documents found in data/docx or data/json.")
+        print("No documents found in data/docx, data/pdf, or data/json.")
         return
 
     vectorstore = build_vectorstore()

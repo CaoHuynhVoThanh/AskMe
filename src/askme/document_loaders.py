@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from langchain_community.document_loaders import Docx2txtLoader
+from langchain_community.document_loaders import Docx2txtLoader, PyPDFLoader
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -12,6 +12,7 @@ from askme.config import get_settings
 def load_source_documents() -> list[Document]:
     settings = get_settings()
     docs = _load_docx(settings.data_dir / "docx")
+    docs.extend(_load_pdf(settings.data_dir / "pdf"))
     docs.extend(_load_json(settings.data_dir / "json"))
 
     splitter = RecursiveCharacterTextSplitter(
@@ -23,8 +24,19 @@ def load_source_documents() -> list[Document]:
 
 def _load_docx(folder: Path) -> list[Document]:
     documents: list[Document] = []
+    if not folder.exists():
+        return documents
     for file_path in sorted(folder.glob("*.docx")):
         documents.extend(Docx2txtLoader(str(file_path)).load())
+    return documents
+
+
+def _load_pdf(folder: Path) -> list[Document]:
+    documents: list[Document] = []
+    if not folder.exists():
+        return documents
+    for file_path in sorted(folder.glob("*.[pP][dD][fF]")):
+        documents.extend(PyPDFLoader(str(file_path)).load())
     return documents
 
 
